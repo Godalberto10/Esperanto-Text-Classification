@@ -33,7 +33,7 @@ CATEGORIES = {
 }
 
 API_URL = "https://eo.wikipedia.org/w/api.php"
-USER_AGENT = "practica-mineria-textos/0.1 (https://github.com/05Pablo/practica)"
+USER_AGENT = "practica-mineria-textos/0.1 (https://github.com/Godalberto10/Esperanto-Text-Classification)"
 
 # Secciones que no aportan texto temático (bibliografía, enlaces...).
 EXCLUDED_SECTIONS = {

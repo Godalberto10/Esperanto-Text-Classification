@@ -1,6 +1,6 @@
 # practica
 
-[![Tests](https://github.com/05Pablo/practica/actions/workflows/tests.yml/badge.svg)](https://github.com/05Pablo/practica/actions/workflows/tests.yml)
+[![Tests](https://github.com/Godalberto10/Esperanto-Text-Classification/actions/workflows/tests.yml/badge.svg)](https://github.com/Godalberto10/Esperanto-Text-Classification/actions/workflows/tests.yml)
 
 Practica final de la asignatura 'Minería de Textos'
 
@@ -30,7 +30,7 @@ notebooks/           Cuaderno de entrenamiento y clasificación (Fase 3)
 ## Instalación
 
 ```bash
-pip install git+https://github.com/05Pablo/practica.git
+pip install git+https://github.com/Godalberto10/Esperanto-Text-Classification.git
 ```
 
 ## Uso de la librería
