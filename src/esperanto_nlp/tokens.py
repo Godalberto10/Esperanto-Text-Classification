@@ -1,4 +1,4 @@
-"""Objetos Doc, Token y Span que estructuran el resultado del análisis."""
+"""Doc, Token and Span objects that structure the analysis output."""
 
 import unicodedata
 
@@ -9,9 +9,9 @@ NUMBER_WORDS = {
 
 
 class MorphAnalysis(dict):
-    """Rasgos morfológicos de un token, p. ej. {"Number": "Plur", "Case": "Acc"}.
+    """Morphological features of a token, e.g. {"Number": "Plur", "Case": "Acc"}.
 
-    Se muestra en formato Universal Dependencies: "Case=Acc|Number=Plur".
+    Rendered in Universal Dependencies format: "Case=Acc|Number=Plur".
     """
 
     def to_dict(self):
@@ -22,16 +22,16 @@ class MorphAnalysis(dict):
 
 
 class Token:
-    """Una palabra, número o signo de puntuación dentro de un Doc."""
+    """A word, number or punctuation mark inside a Doc."""
 
     def __init__(self, doc, i, text, idx, whitespace="", is_sent_start=False):
         self.doc = doc
-        self.i = i                      # posición del token en el Doc
+        self.i = i                      # token index in the Doc
         self.text = text
-        self.idx = idx                  # posición del primer carácter en el texto
-        self.whitespace_ = whitespace   # espacio que sigue al token
+        self.idx = idx                  # character offset in the text
+        self.whitespace_ = whitespace   # whitespace following the token
         self.is_sent_start = is_sent_start
-        # Atributos que rellenan los componentes del pipeline.
+        # Attributes filled in by the pipeline components.
         self.lemma_ = ""
         self.pos_ = ""
         self.morph = MorphAnalysis()
@@ -47,7 +47,7 @@ class Token:
 
     @property
     def is_alpha(self):
-        """Verdadero si es una palabra (letras, con guiones o apóstrofo internos)."""
+        """True if it is a word (letters, with inner hyphens or apostrophes)."""
         stripped = self.text.replace("-", "").replace("'", "").replace("’", "")
         return stripped.isalpha()
 
@@ -57,7 +57,7 @@ class Token:
 
     @property
     def like_num(self):
-        """Verdadero si representa un número: '1200', '3,14', '20-a', 'dek'."""
+        """True if it represents a number: '1200', '3,14', '20-a', 'dek'."""
         return self.text[:1].isdigit() or self.lower_ in NUMBER_WORDS
 
     @property
@@ -75,7 +75,7 @@ class Token:
 
 
 class Span:
-    """Secuencia contigua de tokens de un Doc (p. ej. una frase)."""
+    """Contiguous sequence of tokens in a Doc (e.g. a sentence)."""
 
     def __init__(self, doc, start, end):
         self.doc = doc
@@ -106,7 +106,7 @@ class Span:
 
 
 class Doc:
-    """Resultado de analizar un texto: secuencia de Tokens."""
+    """Result of analysing a text: a sequence of Tokens."""
 
     def __init__(self, text, words, starts, whitespaces, sent_starts):
         self.text = text
@@ -118,7 +118,7 @@ class Doc:
 
     @property
     def sents(self):
-        """Genera las frases del documento como objetos Span."""
+        """Yields the document's sentences as Span objects."""
         start = 0
         for token in self.tokens[1:]:
             if token.is_sent_start:
@@ -137,7 +137,7 @@ class Doc:
         if isinstance(key, slice):
             start, end, step = key.indices(len(self.tokens))
             if step != 1:
-                raise ValueError("Los Span solo admiten pasos de 1")
+                raise ValueError("Spans only support a step of 1")
             return Span(self, start, end)
         return self.tokens[key]
 

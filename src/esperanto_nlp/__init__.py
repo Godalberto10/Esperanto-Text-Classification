@@ -1,6 +1,6 @@
-"""Librería de NLP basada en reglas para Esperanto.
+"""Rule-based NLP library for Esperanto.
 
-Uso:
+Usage:
     >>> import esperanto_nlp
     >>> nlp = esperanto_nlp.load()
     >>> doc = nlp("Mi legas la Biblion.")

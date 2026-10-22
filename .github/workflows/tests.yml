@@ -1,4 +1,4 @@
-# Ejecuta las pruebas de la librería en cada push y en cada pull request.
+# Runs the library test suite on every push and pull request.
 name: Tests
 
 on:
@@ -14,16 +14,16 @@ jobs:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
     steps:
-      - name: Descargar el repositorio
+      - name: Check out the repository
         uses: actions/checkout@v4
 
-      - name: Instalar Python ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Instalar la librería y pytest
+      - name: Install the library and pytest
         run: pip install -e ".[dev]"
 
-      - name: Ejecutar las pruebas
+      - name: Run the tests
         run: pytest -v

@@ -1,9 +1,9 @@
-"""Normalización ortográfica del Esperanto.
+"""Esperanto orthographic normalization.
 
-Las letras con diacrítico (ĉ, ĝ, ĥ, ĵ, ŝ, ŭ) a menudo se escriben con el
-"sistema x" (cx, gx, hx, jx, sx, ux) cuando el teclado no las tiene. Como la
-letra x no existe en el alfabeto del Esperanto, la conversión no es ambigua
-para palabras esperantistas (sí podría afectar a nombres extranjeros: "Linux").
+The accented letters (ĉ, ĝ, ĥ, ĵ, ŝ, ŭ) are often typed with the "x-system"
+(cx, gx, hx, jx, sx, ux) when the keyboard lacks them. Since the letter x is
+not part of the Esperanto alphabet, the conversion is unambiguous for
+Esperanto words (it could still affect foreign names: "Linux").
 """
 
 import re
@@ -17,5 +17,5 @@ _X_RE = re.compile("|".join(_X_SYSTEM))
 
 
 def from_x_system(text):
-    """Convierte texto en sistema x a letras con diacrítico: 'cxiu' -> 'ĉiu'."""
+    """Converts x-system text to accented letters: 'cxiu' -> 'ĉiu'."""
     return _X_RE.sub(lambda m: _X_SYSTEM[m.group()], text)

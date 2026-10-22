@@ -1,39 +1,38 @@
-# practica
+# Esperanto Text Classification
 
 [![Tests](https://github.com/Godalberto10/Esperanto-Text-Classification/actions/workflows/tests.yml/badge.svg)](https://github.com/Godalberto10/Esperanto-Text-Classification/actions/workflows/tests.yml)
 
-Practica final de la asignatura 'Minería de Textos'
+Topic classification of Esperanto texts, built end to end: a reproducible
+dataset pipeline from Esperanto Wikipedia, a rule-based NLP library with a
+spaCy-like API written from scratch, and a classification notebook.
 
-Clasificación de textos en Esperanto por temática: construcción del dataset,
-librería de NLP propia basada en reglas y cuaderno de clasificación.
+## Topics
 
-## Temática
+World religions:
 
-Religiones del mundo:
-
-| Clase | Categoría de Wikipedia (eo) |
+| Class | Wikipedia category (eo) |
 |---|---|
 | `kristanismo` | [Kategorio:Kristanismo](https://eo.wikipedia.org/wiki/Kategorio:Kristanismo) |
 | `islamo` | [Kategorio:Islamo](https://eo.wikipedia.org/wiki/Kategorio:Islamo) |
 | `judismo` | [Kategorio:Judismo](https://eo.wikipedia.org/wiki/Kategorio:Judismo) |
 
-## Estructura
+## Project structure
 
 ```
-src/esperanto_nlp/   Librería de NLP (Fase 2)
-tests/               Pruebas unitarias (pytest)
-scripts/             Script de construcción del dataset (Fase 1)
-data/                Dataset (CSV UTF-8, separador ;, columnas text;class)
-notebooks/           Cuaderno de entrenamiento y clasificación (Fase 3)
+src/esperanto_nlp/   Rule-based NLP library
+tests/               Unit tests (pytest)
+scripts/             Dataset build script
+data/                Dataset (UTF-8 CSV, ';' separator, text;class columns)
+notebooks/           Training and classification notebook
 ```
 
-## Instalación
+## Installation
 
 ```bash
 pip install git+https://github.com/Godalberto10/Esperanto-Text-Classification.git
 ```
 
-## Uso de la librería
+## Library usage
 
 ```python
 import esperanto_nlp
@@ -52,21 +51,31 @@ for sent in doc.sents:
     print(sent.text)
 ```
 
-El pipeline (`nlp.pipe_names`) tiene tres componentes basados en reglas:
+The pipeline (`nlp.pipe_names`) has three rule-based components:
 
-| Componente | Asigna | Reglas |
+| Component | Sets | Rules |
 |---|---|---|
-| `tagger` | `pos_`, `morph` | Terminaciones (-o, -a, -e, -i, -as...), léxico cerrado de palabras funcionales y correlativos, contexto (DET/PRON, nombres propios) |
-| `lemmatizer` | `lemma_` | Elimina la flexión: plural, acusativo y tiempo verbal (`estis` → `esti`). No elimina la derivación (`konataj` → `konata`) |
-| `stopwords` | `is_stop` | Lista de stop-words aplicada a la forma y al lema |
+| `tagger` | `pos_`, `morph` | Word endings (-o, -a, -e, -i, -as...), a closed lexicon of function words and correlatives, and context (DET/PRON, proper nouns) |
+| `lemmatizer` | `lemma_` | Strips inflection: plural, accusative and verb tense (`estis` → `esti`). Derivation is kept (`konataj` → `konata`) |
+| `stopwords` | `is_stop` | Stop-word list matched against both the surface form and the lemma |
 
-Las categorías siguen las etiquetas [Universal Dependencies](https://universaldependencies.org/u/pos/).
+Part-of-speech tags follow [Universal Dependencies](https://universaldependencies.org/u/pos/).
 
-La lista de stop-words parte de `vortoj.json` del repositorio
-[nlp-esperantilo](https://github.com/jparisu/nlp-esperantilo) (Apache-2.0) y se
-amplía por reglas con la tabla de correlativos y las formas de los pronombres.
+The stop-word list starts from `vortoj.json` in the
+[nlp-esperantilo](https://github.com/jparisu/nlp-esperantilo) repository
+(Apache-2.0) and is extended by rule with the correlative table and the
+inflected pronoun forms.
 
-Para desarrollo (instalación editable con dependencias de pruebas):
+## Building the dataset
+
+```bash
+pip install -e ".[dataset]"
+python scripts/build_dataset.py
+```
+
+## Development
+
+Editable install with test dependencies:
 
 ```bash
 pip install -e ".[dev]"

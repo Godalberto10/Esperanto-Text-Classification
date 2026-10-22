@@ -1,14 +1,15 @@
-"""Construye el dataset de párrafos en Esperanto a partir de Wikipedia (eo).
+"""Builds the Esperanto paragraph dataset from Esperanto Wikipedia.
 
-Para cada clase se recorren los artículos de una categoría de Wikipedia (y sus
-subcategorías hasta una profundidad dada), se descarga el texto plano de cada
-artículo, se divide en párrafos y cada párrafo hereda la clase del artículo.
+For each class, the script walks the articles of a Wikipedia category (and its
+subcategories down to a given depth), downloads the plain text of each
+article, splits it into paragraphs, and each paragraph inherits the article's
+class.
 
-Salidas:
-    data/dataset.csv   Contrato de datos: UTF-8, separador ';', columnas text;class
-    data/sources.csv   Trazabilidad: artículo, clase, revisión y nº de párrafos
+Outputs:
+    data/dataset.csv   Data contract: UTF-8, ';' separator, text;class columns
+    data/sources.csv   Provenance: article, class, revision and paragraph count
 
-Uso:
+Usage:
     python scripts/build_dataset.py
     python scripts/build_dataset.py --max-articles 100 --depth 0
 """
@@ -24,8 +25,8 @@ from pathlib import Path
 
 import requests
 
-# Clase del dataset -> categoría de Wikipedia en Esperanto.
-# Es el único sitio que hay que tocar para cambiar de temática.
+# Dataset class -> Esperanto Wikipedia category.
+# This is the only place to change to switch topics.
 CATEGORIES = {
     "kristanismo": "Kristanismo",
     "islamo": "Islamo",
@@ -33,23 +34,23 @@ CATEGORIES = {
 }
 
 API_URL = "https://eo.wikipedia.org/w/api.php"
-USER_AGENT = "practica-mineria-textos/0.1 (https://github.com/Godalberto10/Esperanto-Text-Classification)"
+USER_AGENT = "esperanto-text-classification/0.2 (https://github.com/Godalberto10/Esperanto-Text-Classification)"
 
-# Secciones que no aportan texto temático (bibliografía, enlaces...).
+# Sections that carry no topical text (bibliography, links...).
 EXCLUDED_SECTIONS = {
     "vidu ankaŭ", "referencoj", "notoj", "piednotoj", "notoj kaj referencoj",
     "eksteraj ligiloj", "eksteraj ligoj", "ligiloj", "bibliografio",
     "literaturo", "fontoj",
 }
 
-# Párrafos más cortos suelen ser pies de foto, elementos de lista o títulos.
+# Shorter paragraphs are usually captions, list items or headings.
 MIN_WORDS = 15
 
 HEADING_RE = re.compile(r"^(=+)\s*(.*?)\s*=+$")
 
 
 class WikiClient:
-    """Cliente mínimo del API de MediaWiki con pausas y reintentos."""
+    """Minimal MediaWiki API client with throttling and retries."""
 
     def __init__(self, delay=0.5, retries=5):
         self.session = requests.Session()
@@ -64,21 +65,21 @@ class WikiClient:
             try:
                 response = self.session.get(API_URL, params=params, timeout=30)
                 if response.status_code == 429:
-                    # Demasiadas peticiones: esperar cada vez más (backoff).
+                    # Too many requests: wait longer each time (backoff).
                     wait = 10 * (attempt + 1)
-                    print(f"  429 recibido, esperando {wait}s...", file=sys.stderr)
+                    print(f"  Got 429, waiting {wait}s...", file=sys.stderr)
                     time.sleep(wait)
                     continue
                 response.raise_for_status()
                 return response.json()
             except requests.RequestException as error:
-                print(f"  Error de red ({error}), reintentando...", file=sys.stderr)
+                print(f"  Network error ({error}), retrying...", file=sys.stderr)
                 time.sleep(2 ** attempt)
-        raise RuntimeError(f"El API no respondió tras {self.retries} intentos: {params}")
+        raise RuntimeError(f"API did not respond after {self.retries} attempts: {params}")
 
 
 def get_category_articles(client, category, depth):
-    """Devuelve los títulos de artículos de una categoría y sus subcategorías."""
+    """Returns the article titles of a category and its subcategories."""
     articles = set()
     visited = set()
     frontier = [f"Kategorio:{category}"]
@@ -109,7 +110,7 @@ def get_category_articles(client, category, depth):
 
 
 def get_article(client, title):
-    """Devuelve (texto plano, id de revisión) de un artículo, o None si falla."""
+    """Returns (plain text, revision id) of an article, or None on failure."""
     data = client.get(
         action="query", prop="extracts|info", explaintext=1, titles=title,
     )
@@ -121,13 +122,13 @@ def get_article(client, title):
 
 
 def split_paragraphs(text, min_words=MIN_WORDS):
-    """Divide el texto de un artículo en párrafos limpios.
+    """Splits an article's text into clean paragraphs.
 
-    Ignora los encabezados, las secciones de EXCLUDED_SECTIONS (con todas sus
-    subsecciones) y los párrafos de menos de `min_words` palabras.
+    Skips headings, the sections in EXCLUDED_SECTIONS (with all their
+    subsections) and paragraphs shorter than `min_words` words.
     """
     paragraphs = []
-    skip_level = None  # nivel del encabezado excluido en el que estamos
+    skip_level = None  # level of the excluded heading we are inside
 
     for line in text.split("\n"):
         line = " ".join(line.split())
@@ -152,9 +153,9 @@ def split_paragraphs(text, min_words=MIN_WORDS):
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--depth", type=int, default=1,
-                        help="profundidad de subcategorías a recorrer (por defecto 1)")
+                        help="subcategory depth to walk (default 1)")
     parser.add_argument("--max-articles", type=int, default=200,
-                        help="máximo de artículos por clase (por defecto 200)")
+                        help="maximum articles per class (default 200)")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--output-dir", type=Path, default=Path("data"))
     args = parser.parse_args()
@@ -162,32 +163,32 @@ def main():
     client = WikiClient()
     rng = random.Random(args.seed)
 
-    # 1. Títulos de artículos por clase.
+    # 1. Article titles per class.
     titles_by_class = {}
     for label, category in CATEGORIES.items():
-        print(f"Recorriendo Kategorio:{category}...")
+        print(f"Walking Kategorio:{category}...")
         titles_by_class[label] = get_category_articles(client, category, args.depth)
-        print(f"  {len(titles_by_class[label])} artículos")
+        print(f"  {len(titles_by_class[label])} articles")
 
-    # Un artículo en varias categorías tendría una etiqueta ambigua: se descarta.
+    # An article in several categories would have an ambiguous label: drop it.
     counts = Counter(t for titles in titles_by_class.values() for t in titles)
     ambiguous = {t for t, n in counts.items() if n > 1}
-    print(f"Descartados {len(ambiguous)} artículos presentes en varias clases")
+    print(f"Dropped {len(ambiguous)} articles found in more than one class")
 
-    # 2. Descarga y división en párrafos (muestra aleatoria reproducible).
+    # 2. Download and split into paragraphs (reproducible random sample).
     rows = []
     sources = []
     for label, titles in titles_by_class.items():
         candidates = sorted(titles - ambiguous)
         rng.shuffle(candidates)
         selected = candidates[:args.max_articles]
-        print(f"Descargando {len(selected)} artículos de '{label}'...")
+        print(f"Downloading {len(selected)} articles for '{label}'...")
 
         for i, title in enumerate(selected, 1):
             try:
                 article = get_article(client, title)
             except RuntimeError as error:
-                print(f"  Omitido '{title}': {error}", file=sys.stderr)
+                print(f"  Skipped '{title}': {error}", file=sys.stderr)
                 continue
             if article is None:
                 continue
@@ -198,8 +199,8 @@ def main():
             if i % 25 == 0:
                 print(f"  {i}/{len(selected)}")
 
-    # 3. Párrafos repetidos (plantillas, textos copiados entre artículos).
-    #    Si se repiten con clases distintas, la etiqueta es ambigua: fuera todos.
+    # 3. Repeated paragraphs (templates, text copied between articles).
+    #    If they repeat with different classes the label is ambiguous: drop them all.
     labels_by_text = {}
     for text, label in rows:
         labels_by_text.setdefault(text, set()).add(label)
@@ -209,7 +210,7 @@ def main():
         if len(labels) == 1
     ]
 
-    # 4. Escritura según el contrato de datos.
+    # 4. Write following the data contract.
     args.output_dir.mkdir(parents=True, exist_ok=True)
     with open(args.output_dir / "dataset.csv", "w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f, delimiter=";")
@@ -221,7 +222,7 @@ def main():
         writer.writerow(["title", "class", "revid", "paragraphs"])
         writer.writerows(sorted(sources))
 
-    print("\nPárrafos por clase:")
+    print("\nParagraphs per class:")
     for label, n in sorted(Counter(label for _, label in rows).items()):
         print(f"  {label:15} {n}")
     print(f"Total: {len(rows)} -> {args.output_dir / 'dataset.csv'}")
