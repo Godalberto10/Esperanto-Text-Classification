@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "esperanto-nlp"
 version = "0.2.0"
-description = "Librería de NLP basada en reglas para Esperanto, con API similar a spaCy."
+description = "Rule-based NLP library for Esperanto with a spaCy-like API."
 readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.9"

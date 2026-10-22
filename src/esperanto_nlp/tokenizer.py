@@ -1,24 +1,24 @@
-"""Tokenizador basado en expresiones regulares."""
+"""Regular-expression-based tokenizer."""
 
 import re
 
-# Abreviaturas que contienen puntos y no deben partirse ni cerrar una frase.
+# Abbreviations that contain periods and must neither be split nor end a sentence.
 ABBREVIATIONS = [
-    "k.t.p.", "ktp.", "k.s.", "t.e.", "ekz.",  # etcétera, y similares, es decir...
-    "p.K.", "a.K.", "a.n.e.", "n.e.",          # después/antes de Cristo, (antes de la) era común
-    "jc.", "ĉ.", "vol.", "pp.",                # siglo, aproximadamente, volumen, páginas
+    "k.t.p.", "ktp.", "k.s.", "t.e.", "ekz.",  # etcetera, and similar, that is...
+    "p.K.", "a.K.", "a.n.e.", "n.e.",          # AD/BC, (before the) common era
+    "jc.", "ĉ.", "vol.", "pp.",                # century, approximately, volume, pages
 ]
 
 _ABBR = "|".join(re.escape(a) for a in sorted(ABBREVIATIONS, key=len, reverse=True))
-_LETTER = r"[^\W\d_]"  # cualquier letra Unicode (incluye ĉ, ĝ, ĥ, ĵ, ŝ, ŭ)
+_LETTER = r"[^\W\d_]"  # any Unicode letter (including ĉ, ĝ, ĥ, ĵ, ŝ, ŭ)
 
 TOKEN_RE = re.compile(
     rf"""
-      (?<!{_LETTER})(?i:{_ABBR})(?!{_LETTER})        # abreviaturas: p.K., k.t.p.
-    | {_LETTER}+(?:-{_LETTER}+)*(?:['’](?!{_LETTER}))? # palabras: domo, s-ro, Noa-n, l'
-    | \d+(?:[.,]\d+)*(?:-{_LETTER}+)?                 # números: 1200, 3,14, 20-a
-    | \.\.\.                                          # puntos suspensivos
-    | \S                                              # cualquier otro símbolo
+      (?<!{_LETTER})(?i:{_ABBR})(?!{_LETTER})        # abbreviations: p.K., k.t.p.
+    | {_LETTER}+(?:-{_LETTER}+)*(?:['’](?!{_LETTER}))? # words: domo, s-ro, Noa-n, l'
+    | \d+(?:[.,]\d+)*(?:-{_LETTER}+)?                 # numbers: 1200, 3,14, 20-a
+    | \.\.\.                                          # ellipsis
+    | \S                                              # any other symbol
     """,
     re.VERBOSE,
 )
@@ -28,10 +28,10 @@ CLOSING_PUNCT = {"»", "”", '"', "'", ")", "]", "›"}
 
 
 class Tokenizer:
-    """Divide un texto en tokens y marca los inicios de frase."""
+    """Splits a text into tokens and marks sentence starts."""
 
     def __call__(self, text):
-        """Devuelve una lista de tuplas (texto, posición, espacio_posterior)."""
+        """Returns a list of (text, offset, trailing_whitespace) tuples."""
         matches = list(TOKEN_RE.finditer(text))
         tokens = []
         for n, match in enumerate(matches):
@@ -41,12 +41,12 @@ class Tokenizer:
 
     @staticmethod
     def sentence_starts(words):
-        """Indica, para cada token, si empieza una frase nueva.
+        """Tells, for each token, whether it starts a new sentence.
 
-        Una frase empieza tras un signo de final de frase (. ! ? ...). Los
-        cierres de comillas o paréntesis pertenecen aún a la frase anterior, y
-        tras ellos solo empieza frase si la palabra siguiente va en mayúscula:
-        «Ne!» Bone (dos frases) frente a «Venu!» li diris (una frase).
+        A sentence starts after a sentence-final mark (. ! ? ...). Closing
+        quotes or brackets still belong to the previous sentence, and after
+        them a sentence only starts if the next word is capitalised:
+        «Ne!» Bone (two sentences) versus «Venu!» li diris (one sentence).
         """
         starts = []
         for i, word in enumerate(words):

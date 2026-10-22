@@ -1,4 +1,4 @@
-"""Objeto Language: aplica el tokenizador y el pipeline de componentes."""
+"""Language object: runs the tokenizer and the component pipeline."""
 
 from .morphology import analyze
 from .orthography import from_x_system
@@ -6,19 +6,19 @@ from .stopwords import CORRELATIVE_PREFIXES, STOP_WORDS
 from .tokenizer import Tokenizer
 from .tokens import Doc, MorphAnalysis
 
-# Correlativos en -u (kiu, tiu, iu, ĉiu, neniu): pronombre o determinante.
+# Correlatives ending in -u (kiu, tiu, iu, ĉiu, neniu): pronoun or determiner.
 U_CORRELATIVES = {prefix + "u" for prefix in CORRELATIVE_PREFIXES}
 NOMINAL_POS = {"NOUN", "PROPN", "ADJ", "NUM", "DET"}
 
 
 class Tagger:
-    """Componente que asigna `token.pos_` y `token.morph` por reglas.
+    """Component that sets `token.pos_` and `token.morph` by rule.
 
-    Además del análisis por terminación, aplica dos reglas de contexto:
-    - Una palabra en mayúscula al inicio de frase es nombre propio si aparece
-      como nombre propio en otro punto del documento ("Jesuon ... la Jesuo").
-    - Un correlativo en -u seguido de un sustantivo o adjetivo es determinante
-      ("tiu libro"); si no, es pronombre ("tiu venis").
+    On top of the ending-based analysis, it applies two context rules:
+    - A capitalised word at the start of a sentence is a proper noun if it
+      appears as a proper noun elsewhere in the document ("Jesuon ... la Jesuo").
+    - A correlative in -u followed by a noun or adjective is a determiner
+      ("tiu libro"); otherwise it is a pronoun ("tiu venis").
     """
 
     def __call__(self, doc):
@@ -46,10 +46,10 @@ class Tagger:
 
 
 class Lemmatizer:
-    """Componente que asigna `token.lemma_` por reglas (quita la flexión).
+    """Component that sets `token.lemma_` by rule (strips inflection).
 
-    Si el Tagger ya ha marcado el token como nombre propio, el lema conserva
-    la mayúscula ("Jesuon" -> "Jesuo"), igual que en mitad de frase.
+    If the Tagger has already marked the token as a proper noun, the lemma
+    keeps its capital letter ("Jesuon" -> "Jesuo"), as it would mid-sentence.
     """
 
     def __call__(self, doc):
@@ -60,7 +60,7 @@ class Lemmatizer:
 
 
 class StopWordsMarker:
-    """Componente que marca `token.is_stop` según una lista de stop-words."""
+    """Component that sets `token.is_stop` from a stop-word list."""
 
     def __init__(self, stop_words):
         self.stop_words = stop_words
@@ -75,9 +75,9 @@ class StopWordsMarker:
 
 
 class Language:
-    """Procesador de texto en Esperanto, análogo a `spacy.Language`.
+    """Esperanto text processor, analogous to `spacy.Language`.
 
-    Ejemplo:
+    Example:
         >>> nlp = Language()
         >>> doc = nlp("La hundo kuras.")
         >>> [token.text for token in doc]
@@ -89,8 +89,8 @@ class Language:
     def __init__(self, stop_words=None, normalize_x=False):
         """
         Args:
-            stop_words: conjunto de stop-words; por defecto `STOP_WORDS`.
-            normalize_x: convertir el sistema x ('cx' -> 'ĉ') antes de analizar.
+            stop_words: set of stop-words; defaults to `STOP_WORDS`.
+            normalize_x: convert the x-system ('cx' -> 'ĉ') before analysis.
         """
         self.tokenizer = Tokenizer()
         self.stop_words = set(STOP_WORDS if stop_words is None else stop_words)
@@ -106,12 +106,12 @@ class Language:
         return [name for name, _ in self.pipeline]
 
     def add_pipe(self, component, name, before=None):
-        """Añade un componente (función Doc -> Doc) al pipeline."""
+        """Adds a component (a Doc -> Doc function) to the pipeline."""
         position = self.pipe_names.index(before) if before else len(self.pipeline)
         self.pipeline.insert(position, (name, component))
 
     def make_doc(self, text):
-        """Tokeniza el texto sin aplicar el resto del pipeline."""
+        """Tokenizes the text without running the rest of the pipeline."""
         if self.normalize_x:
             text = from_x_system(text)
         tokens = self.tokenizer(text)
@@ -131,11 +131,11 @@ class Language:
         return doc
 
     def pipe(self, texts):
-        """Procesa una secuencia de textos de forma perezosa."""
+        """Processes a sequence of texts lazily."""
         for text in texts:
             yield self(text)
 
 
 def load(**kwargs):
-    """Crea un procesador de Esperanto: `nlp = esperanto_nlp.load()`."""
+    """Creates an Esperanto processor: `nlp = esperanto_nlp.load()`."""
     return Language(**kwargs)

@@ -57,7 +57,7 @@ def test_sentence_starts():
     assert Tokenizer.sentence_starts(["Jes", ".", "Ne", "!", "»", "Bone"]) == [
         True, False, True, False, False, True,
     ]
-    # Tras «...!» en minúscula la frase continúa.
+    # After «...!» followed by a lowercase word, the sentence continues.
     assert Tokenizer.sentence_starts(["«", "Venu", "!", "»", "li", "diris", "."]) == [
         True, False, False, False, False, False, False,
     ]

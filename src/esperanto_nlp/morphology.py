@@ -1,19 +1,19 @@
-"""Análisis morfológico del Esperanto basado en reglas.
+"""Rule-based morphological analysis of Esperanto.
 
-El Esperanto marca la categoría gramatical con terminaciones regulares:
+Esperanto marks the part of speech with regular endings:
 
-    -o  sustantivo    -a  adjetivo    -e  adverbio
-    -i  infinitivo    -as/-is/-os presente/pasado/futuro
-    -us condicional   -u  volitivo/imperativo
-    -j  plural        -n  acusativo
+    -o  noun          -a  adjective   -e  adverb
+    -i  infinitive    -as/-is/-os present/past/future
+    -us conditional   -u  jussive/imperative
+    -j  plural        -n  accusative
 
-`analyze` aplica estas reglas a una palabra aislada y devuelve su lema, su
-categoría (etiquetas Universal Dependencies) y sus rasgos morfológicos. Las
-palabras funcionales (artículo, preposiciones, pronombres, correlativos...) no
-siguen las terminaciones y se resuelven con un léxico cerrado.
+`analyze` applies these rules to an isolated word and returns its lemma, its
+part of speech (Universal Dependencies tags) and its morphological features.
+Function words (article, prepositions, pronouns, correlatives...) do not
+follow the endings and are resolved with a closed lexicon.
 
-El lema solo elimina la flexión (número, caso, tiempo verbal), no la
-derivación: "konataj" -> "konata" (y no "koni").
+The lemma only strips inflection (number, case, verb tense), not
+derivation: "konataj" -> "konata" (not "koni").
 """
 
 import re
@@ -30,10 +30,10 @@ class Analysis(NamedTuple):
     morph: dict
 
 
-# --- Léxico cerrado -----------------------------------------------------------
+# --- Closed lexicon -----------------------------------------------------------
 
-# Categoría de vortoj.json -> etiqueta UD. Las categorías que no aparecen
-# (verboformo, ĝentilaĵo, titolo) se analizan por su terminación: "esti", "bona".
+# vortoj.json category -> UD tag. Categories not listed here
+# (verboformo, ĝentilaĵo, titolo) are analysed by their ending: "esti", "bona".
 CATEGORY_POS = {
     "artikolo": "DET",
     "prepozicio": "ADP",
@@ -46,14 +46,14 @@ CATEGORY_POS = {
 }
 SUBORDINATING = {"ke", "se", "ĉar", "kvankam", "ol", "kvazaŭ"}
 
-# Terminación de correlativo -> categoría. Los de -u (kiu, tiu...) pueden ser
-# pronombre o determinante; lo decide el contexto en el Tagger.
+# Correlative ending -> part of speech. Those in -u (kiu, tiu...) can be a
+# pronoun or a determiner; the Tagger decides from context.
 CORRELATIVE_POS = {
     "u": "PRON", "o": "PRON", "a": "DET", "es": "DET",
     "e": "ADV", "am": "ADV", "al": "ADV", "el": "ADV", "om": "ADV",
 }
 
-# Abreviaturas: forma en minúsculas -> (lema, categoría).
+# Abbreviations: lowercase form -> (lemma, part of speech).
 ABBREVIATIONS = {
     "s-ro": ("sinjoro", "NOUN"), "s-ino": ("sinjorino", "NOUN"),
     "d-ro": ("doktoro", "NOUN"), "n-ro": ("numero", "NOUN"),
@@ -64,7 +64,7 @@ ABBREVIATIONS = {
     "p.k.": ("post Kristo", "ADV"), "a.k.": ("antaŭ Kristo", "ADV"),
 }
 
-# Unicode los considera puntuación, pero en UD son símbolos.
+# Unicode treats these as punctuation, but UD tags them as symbols.
 SYMBOLS = {"%", "‰", "&", "@", "#", "*", "/", "§", "†", "‡"}
 
 PLURAL_ACC = {
@@ -110,10 +110,10 @@ def _build_lexicon():
 LEXICON = _build_lexicon()
 
 
-# --- Terminaciones ------------------------------------------------------------
+# --- Endings ------------------------------------------------------------------
 
-# (terminación, categoría, terminación del lema, rasgos), de la más larga a la
-# más corta para que "-ojn" se pruebe antes que "-o".
+# (ending, part of speech, lemma ending, features), longest first so that
+# "-ojn" is tried before "-o".
 ENDINGS = [
     ("ojn", "NOUN", "o", {"Number": "Plur", "Case": "Acc"}),
     ("ajn", "ADJ", "a", {"Number": "Plur", "Case": "Acc"}),
@@ -121,7 +121,7 @@ ENDINGS = [
     ("aj", "ADJ", "a", {"Number": "Plur", "Case": "Nom"}),
     ("on", "NOUN", "o", {"Number": "Sing", "Case": "Acc"}),
     ("an", "ADJ", "a", {"Number": "Sing", "Case": "Acc"}),
-    ("en", "ADV", "e", {"Case": "Acc"}),  # dirección: hejmen "hacia casa"
+    ("en", "ADV", "e", {"Case": "Acc"}),  # direction: hejmen "homewards"
     ("as", "VERB", "i", {"VerbForm": "Fin", "Mood": "Ind", "Tense": "Pres"}),
     ("is", "VERB", "i", {"VerbForm": "Fin", "Mood": "Ind", "Tense": "Past"}),
     ("os", "VERB", "i", {"VerbForm": "Fin", "Mood": "Ind", "Tense": "Fut"}),
@@ -132,16 +132,16 @@ ENDINGS = [
     ("i", "VERB", "i", {"VerbForm": "Inf"}),
     ("u", "VERB", "i", {"VerbForm": "Fin", "Mood": "Jus"}),
 ]
-MIN_ROOT = 2  # evita analizar como raíz fragmentos de una sola letra
+MIN_ROOT = 2  # avoids treating single-letter fragments as roots
 
-# Sufijos de participio: tiempo y voz.
+# Participle suffixes: tense and voice.
 PARTICIPLES = {
     "ant": ("Pres", "Act"), "int": ("Past", "Act"), "ont": ("Fut", "Act"),
     "at": ("Pres", "Pass"), "it": ("Past", "Pass"), "ot": ("Fut", "Pass"),
 }
 PARTICIPLE_RE = re.compile(r"^(.{2,}?)(ant|int|ont|at|it|ot)$")
 
-# Raíces que terminan como un participio sin serlo (ŝtata, milita, spirita...).
+# Roots that end like a participle without being one (ŝtata, milita, spirita...).
 NOT_PARTICIPLES = {
     "ŝtat", "milit", "rilat", "spirit", "privat", "konstant", "kvadrat",
     "sacerdot", "jezuit", "kvalit", "majoritat", "eksplicit", "vulgat",
@@ -161,7 +161,7 @@ def _participle_features(root):
 
 
 def analyze_by_ending(word):
-    """Analiza una palabra en minúsculas por su terminación, o devuelve None."""
+    """Analyses a lowercase word by its ending, or returns None."""
     for ending, pos, lemma_ending, features in ENDINGS:
         if word.endswith(ending) and len(word) - len(ending) >= MIN_ROOT:
             root = word[:-len(ending)]
@@ -175,7 +175,7 @@ def analyze_by_ending(word):
 
 
 def _proper_noun(text):
-    """Nombre propio: se quita el acusativo/plural de los nombres esperantizados."""
+    """Proper noun: strips the accusative/plural from Esperantized names."""
     lemma = re.sub(r"-j?n$", "", text)                   # Noa-n -> Noa
     lemma = re.sub(r"(?<=[oa])(jn|j|n)$", "", lemma)     # Jesuon -> Jesuo
     return Analysis(lemma, "PROPN", {})
@@ -183,12 +183,12 @@ def _proper_noun(text):
 
 @lru_cache(maxsize=100_000)
 def analyze(text, is_sent_start=False):
-    """Devuelve el `Analysis` (lema, categoría UD, rasgos) de un token aislado.
+    """Returns the `Analysis` (lemma, UD tag, features) of an isolated token.
 
     Args:
-        text: el token tal como aparece en el texto.
-        is_sent_start: si el token empieza frase (la mayúscula no indica
-            entonces nombre propio).
+        text: the token as it appears in the text.
+        is_sent_start: whether the token starts a sentence (a capital letter
+            then does not imply a proper noun).
     """
     if not any(c.isalnum() for c in text):
         is_punct = text not in SYMBOLS and all(
@@ -211,7 +211,7 @@ def analyze(text, is_sent_start=False):
     if text[0].isupper() and not is_sent_start:
         return _proper_noun(text)
 
-    if lower.endswith(("'", "’")):                        # elisión poética: dom' -> domo
+    if lower.endswith(("'", "’")):                        # poetic elision: dom' -> domo
         return Analysis(lower[:-1] + "o", "NOUN", {})
 
     analysis = analyze_by_ending(lower)
@@ -223,10 +223,10 @@ def analyze(text, is_sent_start=False):
 
 
 def lemmatize(text, is_sent_start=False):
-    """Lema de un token aislado: lemmatize("estis") -> "esti"."""
+    """Lemma of an isolated token: lemmatize("estis") -> "esti"."""
     return analyze(text, is_sent_start).lemma
 
 
 def pos_tag(text, is_sent_start=False):
-    """Categoría UD de un token aislado: pos_tag("hundojn") -> "NOUN"."""
+    """UD tag of an isolated token: pos_tag("hundojn") -> "NOUN"."""
     return analyze(text, is_sent_start).pos

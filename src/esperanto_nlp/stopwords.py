@@ -1,8 +1,8 @@
-"""Gestión de stop-words (palabras vacías) del Esperanto.
+"""Esperanto stop-word handling.
 
-La lista base procede de `data/vortoj.json` (repositorio nlp-esperantilo,
-Apache-2.0, que incluye a su vez stopwords-iso, MIT). Se completa por reglas
-con la tabla de correlativos y las formas flexionadas de los pronombres.
+The base list comes from `data/vortoj.json` (nlp-esperantilo repository,
+Apache-2.0, which in turn includes stopwords-iso, MIT). It is extended by rule
+with the correlative table and the inflected pronoun forms.
 """
 
 import json
@@ -10,7 +10,7 @@ from importlib import resources
 
 PRONOUNS = ["mi", "ci", "vi", "li", "ŝi", "ĝi", "ni", "ili", "oni", "si"]
 
-# Tabla de correlativos: 5 prefijos x 9 terminaciones (kiu, tiu, iu, ĉiu, neniu...).
+# Correlative table: 5 prefixes x 9 endings (kiu, tiu, iu, ĉiu, neniu...).
 CORRELATIVE_PREFIXES = ["ki", "ti", "i", "ĉi", "neni"]
 CORRELATIVE_SUFFIXES = ["u", "o", "a", "e", "am", "al", "el", "om", "es"]
 
@@ -21,12 +21,12 @@ def _load_vortoj():
         return json.load(f)["vortoj"]
 
 
-# Palabra funcional -> categoría del recurso (prepozicio, konjunkcio, pronomo...).
+# Function word -> resource category (prepozicio, konjunkcio, pronomo...).
 FUNCTION_WORDS = {entry["vorto"]: entry["kategorio"] for entry in _load_vortoj()}
 
 
 def _inflections(word):
-    """Formas en plural (-j) y acusativo (-n) que admite una palabra funcional."""
+    """Plural (-j) and accusative (-n) forms a function word can take."""
     if word.endswith(("u", "a")):
         return [word, word + "j", word + "n", word + "jn"]
     if word.endswith(("o", "e")):
@@ -42,16 +42,16 @@ def _build_stop_words():
             words.update(_inflections(prefix + suffix))
 
     for pronoun in PRONOUNS:
-        words.add(pronoun + "n")                      # acusativo: min, lin...
-        words.update(_inflections(pronoun + "a"))     # posesivos: mia, miajn...
+        words.add(pronoun + "n")                      # accusative: min, lin...
+        words.update(_inflections(pronoun + "a"))     # possessives: mia, miajn...
 
     return frozenset(words)
 
 
 STOP_WORDS = _build_stop_words()
-"""Conjunto de stop-words por defecto (en minúsculas)."""
+"""Default stop-word set (lowercase)."""
 
 
 def is_stop_word(word, stop_words=STOP_WORDS):
-    """Indica si una palabra (en cualquier capitalización) es stop-word."""
+    """Tells whether a word (in any casing) is a stop-word."""
     return word.lower() in stop_words

@@ -34,7 +34,7 @@ def test_correlative_determiner_or_pronoun(nlp):
 def test_proper_noun_at_sentence_start(nlp):
     doc = nlp("Jesuon oni krucumis. Laŭ la Biblio, Jesuo resurektis.")
     assert (doc[0].lemma_, doc[0].pos_) == ("Jesuo", "PROPN")
-    # Sin otra aparición en el documento, decide la terminación.
+    # With no other occurrence in the document, the ending decides.
     doc = nlp("Hundoj bojas.")
     assert (doc[0].lemma_, doc[0].pos_) == ("hundo", "NOUN")
 
