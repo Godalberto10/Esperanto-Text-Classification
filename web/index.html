@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Esperanto Topic Classifier</title>
+  <meta name="description" content="Classify Esperanto text as Christianity, Islam or Judaism with a rule-based NLP library and a linear model, running entirely in your browser.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><polygon points='50,5 61,38 95,38 67,59 78,92 50,72 22,92 33,59 5,38 39,38' fill='%23159a5b'/></svg>">
+  <style>
+    :root {
+      --bg: #f7f7f5;
+      --surface: #ffffff;
+      --text: #1d1f21;
+      --muted: #5f6368;
+      --border: #e2e2de;
+      --accent: #159a5b;
+      --accent-text: #ffffff;
+      --kristanismo: #2f6fd0;
+      --islamo: #1f9e89;
+      --judismo: #d9822b;
+      --warn-bg: #fff6e0;
+      --warn-text: #7a5300;
+      --radius: 12px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #131416;
+        --surface: #1c1e21;
+        --text: #e8e8e6;
+        --muted: #a0a4a8;
+        --border: #2e3135;
+        --accent: #2fbf7a;
+        --accent-text: #0d1a12;
+        --kristanismo: #5b93ec;
+        --islamo: #3cc2aa;
+        --judismo: #f0a050;
+        --warn-bg: #3a2f14;
+        --warn-text: #f5d58a;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    main { max-width: 860px; margin: 0 auto; padding: 40px 16px 64px; }
+    header h1 { font-size: clamp(1.7rem, 4vw, 2.3rem); margin: 0 0 8px; letter-spacing: -0.02em; }
+    header p { margin: 0; color: var(--muted); max-width: 640px; }
+    .links { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 14px; font-size: 0.95rem; }
+    a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    a:hover { text-decoration: underline; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-top: 24px;
+    }
+    h2 { font-size: 1.05rem; margin: 0 0 14px; }
+    textarea {
+      width: 100%;
+      min-height: 130px;
+      resize: vertical;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font: inherit;
+    }
+    textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .examples { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; align-items: center; }
+    .examples span { color: var(--muted); font-size: 0.9rem; margin-right: 4px; }
+    .chip {
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 4px 12px;
+      font: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .chip:hover { border-color: var(--accent); }
+    .actions { display: flex; align-items: center; gap: 14px; margin-top: 12px; flex-wrap: wrap; }
+    button.primary {
+      background: var(--accent);
+      color: var(--accent-text);
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 22px;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button.primary:disabled { opacity: 0.55; cursor: wait; }
+    #status { color: var(--muted); font-size: 0.92rem; }
+    .bar-row { display: grid; grid-template-columns: 120px 1fr 56px; gap: 12px; align-items: center; margin: 10px 0; }
+    .bar-label { font-weight: 600; }
+    .bar-label small { display: block; font-weight: 400; color: var(--muted); font-size: 0.8rem; }
+    .bar-track { height: 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 999px; transition: width 0.4s ease; }
+    .bar-value { text-align: right; font-variant-numeric: tabular-nums; }
+    .verdict { font-size: 1.15rem; margin: 0 0 6px; }
+    .note { background: var(--warn-bg); color: var(--warn-text); border-radius: 8px; padding: 10px 12px; margin-top: 14px; font-size: 0.92rem; }
+    .evidence { display: flex; flex-wrap: wrap; gap: 8px; }
+    .evidence .chip { cursor: default; }
+    .muted { color: var(--muted); font-size: 0.92rem; }
+    .table-wrap { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+    th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    th { color: var(--muted); font-weight: 600; }
+    tr.stop td { color: var(--muted); }
+    code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.88em; }
+    .hidden { display: none; }
+    footer { margin-top: 32px; color: var(--muted); font-size: 0.9rem; }
+    @media (max-width: 520px) {
+      .bar-row { grid-template-columns: 92px 1fr 48px; gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Esperanto Topic Classifier</h1>
+    <p>
+      Paste a text in Esperanto and the model estimates whether it is about
+      Christianity, Islam or Judaism. Everything runs in your browser: a
+      rule-based NLP library written from scratch lemmatizes the text, and a
+      TF-IDF + logistic regression model trained on Esperanto Wikipedia
+      classifies it.
+    </p>
+    <div class="links">
+      <a href="https://github.com/Godalberto10/Esperanto-Text-Classification">Source code on GitHub</a>
+      <a href="https://github.com/Godalberto10/Esperanto-Text-Classification/blob/main/notebooks/classification.ipynb">Training notebook</a>
+    </div>
+  </header>
+
+  <section class="card">
+    <div class="examples" id="examples"><span>Try:</span></div>
+    <textarea id="text" aria-label="Esperanto text" spellcheck="false" placeholder="Skribu aŭ algluu tekston en Esperanto…"></textarea>
+    <div class="actions">
+      <button class="primary" id="classify" disabled>Classify</button>
+      <span id="status" role="status">Loading Python in your browser (first visit takes a few seconds)…</span>
+    </div>
+  </section>
+
+  <section class="card hidden" id="result">
+    <p class="verdict" id="verdict"></p>
+    <div id="bars"></div>
+    <div class="note hidden" id="low-confidence">
+      Low confidence: the text may not be about any of these three religions,
+      or it uses few words the model has seen. The model always picks one of
+      the three classes.
+    </div>
+  </section>
+
+  <section class="card hidden" id="why">
+    <h2>Words that drove the prediction</h2>
+    <div class="evidence" id="evidence"></div>
+    <p class="muted" id="evidence-note"></p>
+  </section>
+
+  <section class="card hidden" id="analysis">
+    <h2>Linguistic analysis by <code>esperanto_nlp</code></h2>
+    <p class="muted">
+      Tokens, lemmas, Universal Dependencies part-of-speech tags and
+      morphology, all produced by grammar rules. Stop-words (greyed out)
+      are ignored by the classifier.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Token</th><th>Lemma</th><th>POS</th><th>Morphology</th></tr></thead>
+        <tbody id="tokens"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    Trained on 4,566 paragraphs from 596 Esperanto Wikipedia articles.
+    On articles it never saw during training it reaches 0.84 accuracy and
+    0.83 macro F1. Text from Wikipedia is available under CC BY-SA 4.0.
+  </footer>
+</main>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

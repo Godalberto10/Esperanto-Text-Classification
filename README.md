@@ -15,6 +15,11 @@ automatically from Esperanto Wikipedia, the linguistic processing is done by
 a rule-based NLP library written for this project (no spaCy, NLTK or Stanza),
 and a classical machine-learning model is trained on top of it.
 
+**[Try the live demo](https://godalberto10.github.io/Esperanto-Text-Classification/)**:
+paste any Esperanto text and see the class probabilities, the words behind
+the prediction and the library's analysis of every token. It runs entirely
+in your browser.
+
 ## Why Esperanto?
 
 Esperanto is the most widely spoken constructed language, with a large
@@ -131,6 +136,26 @@ A Jupyter notebook, runnable on Google Colab in under a minute on a CPU, that:
 5. Scrapes real Esperanto web pages from outside Wikipedia and reports the
    probability of each class.
 
+### 4. Web demo: [`web/`](web)
+
+A static page on GitHub Pages that runs the real `esperanto_nlp` library in
+the browser through [Pyodide](https://pyodide.org) (Python compiled to
+WebAssembly). [`scripts/build_site.py`](scripts/build_site.py) trains the
+notebook's final model on the whole dataset and exports its weights to JSON.
+[`web/demo.py`](web/demo.py) then reproduces TF-IDF and logistic regression
+in pure Python, so the browser needs neither NumPy nor scikit-learn. The
+build checks that the browser model gives the same probabilities as
+scikit-learn, and a GitHub Actions workflow rebuilds and publishes the site
+on every push to `main`.
+
+Preview it locally:
+
+```bash
+pip install -e . pandas scikit-learn
+python scripts/build_site.py --output _site
+python -m http.server --directory _site
+```
+
 ## Results
 
 On 913 test paragraphs from unseen articles:
@@ -209,9 +234,10 @@ pytest
 ```
 ├── data/                 Generated dataset and its provenance
 ├── notebooks/            Training, evaluation and web classification
-├── scripts/              Dataset build script
+├── scripts/              Dataset and web demo build scripts
 ├── src/esperanto_nlp/    Rule-based NLP library
-└── tests/                Unit tests (pytest), run on every push by GitHub Actions
+├── tests/                Unit tests (pytest), run on every push by GitHub Actions
+└── web/                  Web demo, published to GitHub Pages
 ```
 
 ## Credits
