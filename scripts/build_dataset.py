@@ -7,7 +7,8 @@ class.
 
 Outputs:
     data/dataset.csv   Data contract: UTF-8, ';' separator, text;class columns
-    data/sources.csv   Provenance: article, class, revision and paragraph count
+    data/sources.csv   Provenance: article, class, revision and paragraph count,
+                       in the same order as the rows of dataset.csv
 
 Usage:
     python scripts/build_dataset.py
@@ -47,6 +48,11 @@ EXCLUDED_SECTIONS = {
 MIN_WORDS = 15
 
 HEADING_RE = re.compile(r"^(=+)\s*(.*?)\s*=+$")
+
+# Footnote markers left in the plain-text extract: [1], ([2]), [?], [H].
+# Editorial brackets such as [...] or [la virinoj] are part of the text and kept.
+FOOTNOTE_RE = re.compile(r"\(?\[(?:\d+|[a-zA-Z]|\?)\]\)?")
+URL_RE = re.compile(r"\[?(?:https?://|www\.)[^\s\]]*[^\s\].,;:!?)]\]?")
 
 
 class WikiClient:
@@ -121,17 +127,33 @@ def get_article(client, title):
     return text, page.get("lastrevid")
 
 
+def clean_paragraph(text):
+    """Removes footnote markers and URLs, and replaces ';' as the data contract requires.
+
+    >>> clean_paragraph("en la evangelio([1]); vidu www.ueci.it  kaj [...] fino [2].")
+    'en la evangelio, vidu kaj [...] fino.'
+    >>> clean_paragraph("la buŝo [www.ueci.it]? Jes () ne.")
+    'la buŝo? Jes ne.'
+    """
+    text = FOOTNOTE_RE.sub("", text)
+    text = URL_RE.sub("", text)
+    text = text.replace("()", "")
+    text = text.replace(";", ",")
+    text = " ".join(text.split())
+    return re.sub(r"\s+([,.:!?)])", r"\1", text)
+
+
 def split_paragraphs(text, min_words=MIN_WORDS):
     """Splits an article's text into clean paragraphs.
 
     Skips headings, the sections in EXCLUDED_SECTIONS (with all their
-    subsections) and paragraphs shorter than `min_words` words.
+    subsections) and paragraphs shorter than `min_words` words after cleaning.
     """
     paragraphs = []
     skip_level = None  # level of the excluded heading we are inside
 
     for line in text.split("\n"):
-        line = " ".join(line.split())
+        line = clean_paragraph(line)
         if not line:
             continue
 
@@ -193,37 +215,49 @@ def main():
             if article is None:
                 continue
             text, revid = article
-            paragraphs = split_paragraphs(text)
-            rows.extend((p, label) for p in paragraphs)
-            sources.append((title, label, revid, len(paragraphs)))
+            rows.extend((p, label, title) for p in split_paragraphs(text))
+            sources.append((title, label, revid))
             if i % 25 == 0:
                 print(f"  {i}/{len(selected)}")
 
     # 3. Repeated paragraphs (templates, text copied between articles).
     #    If they repeat with different classes the label is ambiguous: drop them all.
+    #    Otherwise keep only the first occurrence.
     labels_by_text = {}
-    for text, label in rows:
+    for text, label, _ in rows:
         labels_by_text.setdefault(text, set()).add(label)
-    rows = [
-        (text, labels.pop())
-        for text, labels in labels_by_text.items()
-        if len(labels) == 1
-    ]
+    seen = set()
+    unique_rows = []
+    for text, label, title in rows:
+        if len(labels_by_text[text]) == 1 and text not in seen:
+            seen.add(text)
+            unique_rows.append((text, label, title))
+    rows = unique_rows
 
-    # 4. Write following the data contract.
+    # 4. Write following the data contract. Rows are grouped by article in the
+    #    same order as sources.csv, so `paragraphs` maps every row back to its
+    #    article (needed to split train/test by article without leakage).
+    sources.sort()
+    order = {title: i for i, (title, _, _) in enumerate(sources)}
+    rows.sort(key=lambda row: order[row[2]])  # stable: keeps paragraph order
+    paragraph_counts = Counter(title for _, _, title in rows)
+
     args.output_dir.mkdir(parents=True, exist_ok=True)
     with open(args.output_dir / "dataset.csv", "w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f, delimiter=";")
         writer.writerow(["text", "class"])
-        writer.writerows(rows)
+        writer.writerows((text, label) for text, label, _ in rows)
 
     with open(args.output_dir / "sources.csv", "w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f, delimiter=";")
         writer.writerow(["title", "class", "revid", "paragraphs"])
-        writer.writerows(sorted(sources))
+        writer.writerows(
+            (title, label, revid, paragraph_counts[title])
+            for title, label, revid in sources
+        )
 
     print("\nParagraphs per class:")
-    for label, n in sorted(Counter(label for _, label in rows).items()):
+    for label, n in sorted(Counter(label for _, label, _ in rows).items()):
         print(f"  {label:15} {n}")
     print(f"Total: {len(rows)} -> {args.output_dir / 'dataset.csv'}")
 
