@@ -78,7 +78,8 @@ pick up subtler vocabulary such as *sinagogo* versus *moskeo* versus
 
 Inherited labels are noisy. A paragraph like *"Ĝi estis fondita en 1950"*
 ("It was founded in 1950") says nothing about religion, yet it carries the
-label of its article. Measuring that noise is part of the evaluation.
+label of its article. The notebook measures how much of the dataset is
+like that (see [Results](#results)).
 
 ### 2. NLP library: [`src/esperanto_nlp`](src/esperanto_nlp)
 
@@ -140,9 +141,12 @@ On 913 test paragraphs from unseen articles:
 
 - Lemmatizing with the library improves macro F1 by about 0.015 over raw
   words for all three models.
-- Most errors come from paragraphs that genuinely concern two religions
-  (the Sanhedrin seen through the Gospels) or that say nothing about
-  religion and only inherit their article's label.
+- **Label noise, measured:** in an annotated sample of 100 test
+  paragraphs ([`data/noise_sample.csv`](data/noise_sample.csv)), 36% say
+  nothing about their labelled religion (biographies, dates, geography).
+  The model is right on 98% of the on-topic paragraphs and on 61% of the
+  off-topic ones, so most errors come from labels that cannot be inferred
+  from the text.
 - On 7 real pages from Wikisource and Wikinews, 6 are classified correctly,
   including a news story about Hagia Sofia becoming a mosque and a chapter
   of Deuteronomy.
@@ -188,6 +192,17 @@ Run the tests:
 pip install -e ".[dev]"
 pytest
 ```
+
+### Reproducibility
+
+- Every random step uses seed 42: the article sample, the train/test split,
+  the cross-validation folds and the noise sample.
+- [`requirements.txt`](requirements.txt) pins the library versions the
+  published results were produced with (`pip install -r requirements.txt`),
+  and the notebook prints the versions of each run.
+- Wikipedia changes every day, so [`data/sources.csv`](data/sources.csv)
+  records the revision id of every article used. The notebook loads that
+  published dataset by default instead of downloading a new one.
 
 ## Project structure
 
