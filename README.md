@@ -3,6 +3,7 @@
 [![Tests](https://github.com/Godalberto10/Esperanto-Text-Classification/actions/workflows/tests.yml/badge.svg)](https://github.com/Godalberto10/Esperanto-Text-Classification/actions/workflows/tests.yml)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Godalberto10/Esperanto-Text-Classification/blob/main/notebooks/classification.ipynb)
 
 An end-to-end text classification system for **Esperanto**, a language with
 almost no NLP tooling. Given a paragraph or a web page written in Esperanto,
@@ -173,8 +174,8 @@ pip install -e ".[dataset]"
 python scripts/build_dataset.py
 ```
 
-Run the classification notebook locally (or open it in Colab with the
-badge at its top):
+Run the classification notebook in Colab with the badge at the top of this
+page, or locally:
 
 ```bash
 pip install -e ".[notebook]"
